@@ -113,7 +113,9 @@ jobs:
         echo "✅ All API files present"
         
     - name: Run extension validation script
-      run: ./validate-deployment.sh
+      run: |
+        chmod +x ./validate-deployment.sh
+        ./validate-deployment.sh
       
   # Build extension for different environments  
   build:
@@ -162,7 +164,15 @@ jobs:
         cp welcome.js extension-build/${{ matrix.environment }}/
         
         # Update API URL in background script
-        sed -i "s|baseUrl: isDev ? 'http://localhost:3000' : '.*'|baseUrl: isDev ? 'http://localhost:3000' : '${{ env.VERCEL_URL }}/api'|g" extension-build/${{ matrix.environment }}/background/background.js
+        node -e "
+          const fs = require('fs');
+          const bgScript = fs.readFileSync('extension-build/${{ matrix.environment }}/background/background.js', 'utf8');
+          const updatedScript = bgScript.replace(
+            /baseUrl: isDev \? 'http:\/\/localhost:3000' : '.*'/g,
+            \"baseUrl: isDev ? 'http://localhost:3000' : '${{ env.VERCEL_URL }}/api'\"
+          );
+          fs.writeFileSync('extension-build/${{ matrix.environment }}/background/background.js', updatedScript);
+        "
         
         # Update manifest version and API URL
         node -e "
