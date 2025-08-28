@@ -1,0 +1,33 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#007cff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0056b3;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="targetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f0f8ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main background -->
+  <circle cx="64" cy="64" r="60" fill="url(#bgGradient)" stroke="#004494" stroke-width="2"/>
+  
+  <!-- Target/bullseye design for "tracking" concept -->
+  <circle cx="64" cy="64" r="45" fill="none" stroke="url(#targetGradient)" stroke-width="3" opacity="0.8"/>
+  <circle cx="64" cy="64" r="35" fill="none" stroke="url(#targetGradient)" stroke-width="2" opacity="0.6"/>
+  <circle cx="64" cy="64" r="25" fill="none" stroke="url(#targetGradient)" stroke-width="2" opacity="0.4"/>
+  
+  <!-- Central target point -->
+  <circle cx="64" cy="64" r="8" fill="url(#targetGradient)"/>
+  
+  <!-- Dollar sign overlay to represent betting -->
+  <text x="64" y="76" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#28a745" text-anchor="middle">$</text>
+  
+  <!-- Small chart/graph bars in corner to represent tracking -->
+  <rect x="85" y="85" width="4" height="15" fill="#28a745" opacity="0.8"/>
+  <rect x="91" y="80" width="4" height="20" fill="#28a745" opacity="0.8"/>
+  <rect x="97" y="75" width="4" height="25" fill="#28a745" opacity="0.8"/>
+  <rect x="103" y="85" width="4" height="15" fill="#28a745" opacity="0.8"/>
+</svg>

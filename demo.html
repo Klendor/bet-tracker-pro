@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🎯 Bet Tracker Pro - Test Page</title>
+    <meta charset="utf-8">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .demo-bet-slip {
+            background: white;
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .bet-header {
+            background: #007cff;
+            color: white;
+            padding: 10px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .bet-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .bet-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Bet Tracker Pro - Demo Page</h1>
+        
+        <div class="status">
+            <h3>🎆 MAJOR UPDATE - Advanced Features Released!</h3>
+            <p><strong>Extension:</strong> ✅ Enhanced with advanced data management and analytics</p>
+            <p><strong>Google Sheets:</strong> ✅ One-click integration with auto-sync</p>
+            <p><strong>Dark Mode:</strong> ✅ Beautiful dark theme with smooth animations</p>
+            <p><strong>Mobile:</strong> ✅ Fully responsive design for all devices</p>
+            <p><strong>Analytics:</strong> ✅ Comprehensive betting performance tracking</p>
+        </div>
+
+        <div class="instructions">
+            <h3>🎆 How to Use the ENHANCED Bet Tracker Pro</h3>
+            <div class="step">
+                <strong>1.</strong> 🔄 RELOAD the extension in Chrome (chrome://extensions/ → refresh)
+            </div>
+            <div class="step">
+                <strong>2.</strong> 🎯 Click the Bet Tracker Pro extension icon
+            </div>
+            <div class="step">
+                <strong>3.</strong> 🌙 Try the new dark mode toggle in the header!
+            </div>
+            <div class="step">
+                <strong>4.</strong> 📸 Click "Capture Bet Slip" for the improved capture tool
+            </div>
+            <div class="step">
+                <strong>5.</strong> ✨ Experience the transparent overlay with smooth animations
+            </div>
+            <div class="step">
+                <strong>6.</strong> 🔄 Click and drag to select - immediate capture with visual feedback!
+            </div>
+            <div class="step">
+                <strong>7.</strong> 📊 View enhanced results with detailed analytics
+            </div>
+            <div class="step">
+                <strong>8.</strong> 🗺️ Explore advanced history with search and filters
+            </div>
+            <div class="step">
+                <strong>9.</strong> 📈 Export data to CSV/Excel with profit calculations
+            </div>
+            <div class="step">
+                <strong>10.</strong> 📋 Connect Google Sheets for auto-sync magic!
+            </div>
+        </div>
+
+        <h2>🎲 Sample Bet Slips to Test</h2>
+        
+        <div class="demo-bet-slip">
+            <div class="bet-header">DraftKings Sportsbook</div>
+            <div class="bet-details">
+                <div>
+                    <div class="bet-row">
+                        <span><strong>Lakers @ Warriors</strong></span>
+                        <span>NBA Basketball</span>
+                    </div>
+                    <div class="bet-row">
+                        <span>Lakers to Win</span>
+                        <span>+150</span>
+                    </div>
+                    <div class="bet-row">
+                        <span>Stake:</span>
+                        <span><strong>$50.00</strong></span>
+                    </div>
+                    <div class="bet-row">
+                        <span>Potential Return:</span>
+                        <span><strong>$125.00</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; color: #666; font-size: 12px;">
+                Game Date: January 15, 2024 - 8:00 PM EST
+            </div>
+        </div>
+
+        <div class="demo-bet-slip">
+            <div class="bet-header">FanDuel Sportsbook</div>
+            <div class="bet-details">
+                <div>
+                    <div class="bet-row">
+                        <span><strong>Cowboys vs Giants</strong></span>
+                        <span>NFL Football</span>
+                    </div>
+                    <div class="bet-row">
+                        <span>Over 47.5 Points</span>
+                        <span>-110</span>
+                    </div>
+                    <div class="bet-row">
+                        <span>Stake:</span>
+                        <span><strong>$25.00</strong></span>
+                    </div>
+                    <div class="bet-row">
+                        <span>To Win:</span>
+                        <span><strong>$22.73</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; color: #666; font-size: 12px;">
+                Sunday, January 14, 2024 - 1:00 PM EST
+            </div>
+        </div>
+
+        <div class="demo-bet-slip">
+            <div class="bet-header">Bet365</div>
+            <div class="bet-details">
+                <div>
+                    <div class="bet-row">
+                        <span><strong>Manchester United vs Liverpool</strong></span>
+                        <span>Premier League</span>
+                    </div>
+                    <div class="bet-row">
+                        <span>Draw</span>
+                        <span>3.20</span>
+                    </div>
+                    <div class="bet-row">
+                        <span>Stake:</span>
+                        <span><strong>£20.00</strong></span>
+                    </div>
+                    <div class="bet-row">
+                        <span>Returns:</span>
+                        <span><strong>£64.00</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; color: #666; font-size: 12px;">
+                Saturday, January 13, 2024 - 17:30 GMT
+            </div>
+        </div>
+
+        <div class="feature-list">
+            <div class="feature">
+                <h4>🤖 Enhanced AI Extraction</h4>
+                <p>Uses Google Gemini Vision with improved prompts for better accuracy and detailed bet analysis.</p>
+            </div>
+            <div class="feature">
+                <h4>📊 Advanced Analytics</h4>
+                <p>Comprehensive analytics dashboard with profit/loss tracking, ROI calculations, and visual charts.</p>
+            </div>
+            <div class="feature">
+                <h4>🗺️ Smart Filtering</h4>
+                <p>Filter by sport, bookmaker, date range with real-time search across all bet data.</p>
+            </div>
+            <div class="feature">
+                <h4>📄 Enhanced Export</h4>
+                <p>Export to CSV/Excel with automatic profit calculations, ROI analysis, and formatted reports.</p>
+            </div>
+            <div class="feature">
+                <h4>📋 Google Sheets Sync</h4>
+                <p>One-click Google Sheets integration with automatic synchronization and custom templates.</p>
+            </div>
+            <div class="feature">
+                <h4>🌙 Dark Mode</h4>
+                <p>Beautiful dark theme with smooth transitions and system preference detection.</p>
+            </div>
+            <div class="feature">
+                <h4>📱 Mobile Responsive</h4>
+                <p>Fully optimized for mobile devices with touch-friendly interactions and adaptive layouts.</p>
+            </div>
+            <div class="feature">
+                <h4>✨ Smooth Animations</h4>
+                <p>Professional micro-interactions, loading states, and visual feedback throughout the interface.</p>
+            </div>
+        </div>
+
+        <div class="status">
+            <h3>🎆 What's NEW in the Enhanced System</h3>
+            <p><strong>📊 Advanced Analytics:</strong> Comprehensive profit/loss tracking with visual charts</p>
+            <p><strong>🔍 Smart Search:</strong> Real-time filtering by sport, bookmaker, date range</p>
+            <p><strong>📄 Enhanced Export:</strong> CSV/Excel with automatic calculations and ROI analysis</p>
+            <p><strong>📋 Google Sheets:</strong> One-click integration with auto-sync capabilities</p>
+            <p><strong>🌙 Dark Mode:</strong> Beautiful dark theme with smooth animations</p>
+            <p><strong>📱 Mobile First:</strong> Fully responsive design for all devices</p>
+        </div>
+
+        <div class="feature">
+            <h4>🛠️ Debug Tips</h4>
+            <p><strong>If you see "unknown" values:</strong></p>
+            <ul style="text-align: left; margin-left: 20px;">
+                <li>Check the debug image - is the selection accurate?</li>
+                <li>Make sure you're selecting ONLY the bet slip area</li>
+                <li>Try selecting a smaller, more focused area</li>
+                <li>Check browser console for error messages</li>
+                <li>Verify the image shows clear, readable text</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
