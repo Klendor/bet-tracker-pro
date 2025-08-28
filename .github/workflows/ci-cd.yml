@@ -37,8 +37,8 @@ jobs:
           exit 1
         fi
         
-        # Validate JSON syntax
-        if ! jq empty manifest.json; then
+        # Validate JSON syntax using Node.js
+        if ! node -e "JSON.parse(require('fs').readFileSync('manifest.json', 'utf8'))"; then
           echo "❌ manifest.json is not valid JSON"
           exit 1
         fi
@@ -165,10 +165,17 @@ jobs:
         sed -i "s|baseUrl: isDev ? 'http://localhost:3000' : '.*'|baseUrl: isDev ? 'http://localhost:3000' : '${{ env.VERCEL_URL }}/api'|g" extension-build/${{ matrix.environment }}/background/background.js
         
         # Update manifest version and API URL
-        jq --arg env "${{ matrix.environment }}" --arg suffix "${{ env.EXTENSION_VERSION_SUFFIX }}" '
-          .version = (.version + $suffix) |
-          .name = (.name + if $env == "staging" then " (Staging)" else "" end)
-        ' manifest.json > extension-build/${{ matrix.environment }}/manifest.json
+        node -e "
+          const fs = require('fs');
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          const env = '${{ matrix.environment }}';
+          const suffix = '${{ env.EXTENSION_VERSION_SUFFIX }}';
+          manifest.version = manifest.version + suffix;
+          if (env === 'staging') {
+            manifest.name = manifest.name + ' (Staging)';
+          }
+          fs.writeFileSync('extension-build/' + env + '/manifest.json', JSON.stringify(manifest, null, 2));
+        "
         
         echo "✅ Extension built for ${{ matrix.environment }}"
         
@@ -222,7 +229,7 @@ jobs:
     - name: Get version from manifest
       id: version
       run: |
-        VERSION=$(jq -r '.version' manifest.json)
+        VERSION=$(node -e "console.log(JSON.parse(require('fs').readFileSync('manifest.json', 'utf8')).version)")
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Version: $VERSION"
         

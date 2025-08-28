@@ -73,7 +73,6 @@ coverage/
 *.backup
 *.orig
 
-# Package manager
-package-lock.json
+# Package manager (keep package-lock.json for CI/CD)
 yarn.lock
 pnpm-lock.yaml
