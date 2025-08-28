@@ -1,25 +1,24 @@
 {
   "name": "bet-tracker-pro-api",
   "version": "2.0.0",
-  "description": "Serverless API for Bet Tracker Pro Chrome Extension - Vercel deployment",
+  "description": "Express.js API for Bet Tracker Pro Chrome Extension - Railway deployment",
   "type": "module",
+  "main": "server.js",
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step required for Vercel serverless functions'",
-    "deploy": "vercel",
-    "deploy:prod": "vercel --prod"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "build": "echo 'No build step required for Express.js'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
-    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "googleapis": "^128.0.0",
-    "bcryptjs": "^2.4.3"
-  },
-  "devDependencies": {
-    "vercel": "^32.0.0"
+    "jsonwebtoken": "^9.0.2"
   },
   "keywords": [
     "betting",
@@ -28,8 +27,8 @@
     "chrome-extension",
     "gemini",
     "google-sheets",
-    "serverless",
-    "vercel"
+    "express",
+    "railway"
   ],
   "license": "MIT",
   "repository": {
