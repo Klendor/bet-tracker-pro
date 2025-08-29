@@ -20,6 +20,57 @@ class BetTrackerCapture {
         sendResponse({ success: true });
       }
     });
+    
+    // Check if we're on the auth success page
+    this.checkAuthCompletion();
+  }
+
+  checkAuthCompletion() {
+    // Only run on our auth success page
+    if (window.location.hostname === 'bet-tracker-pro-production.up.railway.app' && 
+        window.location.pathname === '/auth-success.html') {
+      
+      console.log('Auth success page detected');
+      
+      // Wait for the page to load and extract token
+      setTimeout(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const user = urlParams.get('user');
+        
+        if (token) {
+          console.log('Auth token found, notifying extension');
+          
+          // Send message to background script
+          chrome.runtime.sendMessage({
+            action: 'authComplete',
+            token: token,
+            user: user
+          }, (response) => {
+            console.log('Auth completion response:', response);
+            
+            // Update the page to show success
+            const statusEl = document.getElementById('status');
+            const closeBtn = document.getElementById('closeBtn');
+            const loading = document.getElementById('loading');
+            
+            if (loading) loading.style.display = 'none';
+            
+            if (statusEl && closeBtn) {
+              if (response && response.success) {
+                statusEl.textContent = '✅ Authentication successful! Extension updated. You can close this tab.';
+                statusEl.className = 'status success';
+              } else {
+                statusEl.textContent = '⚠️ Authentication completed with warnings. Please check extension.';
+                statusEl.className = 'status error';
+              }
+              statusEl.style.display = 'block';
+              closeBtn.innerHTML = 'Close Tab';
+            }
+          });
+        }
+      }, 1000);
+    }
   }
 
   startCapture() {

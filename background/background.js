@@ -1,20 +1,12 @@
 // Background service worker for Bet Tracker Pro
 
-// Import Google Sheets service
-importScripts('sheets-service.js');
-
 // Import extension updater
 importScripts('extension-updater.js');
-
-// Import environment configuration
-importScripts('../config/environment.js');
 
 class BetTrackerBackground {
   constructor() {
     this.userToken = null;
-    this.envConfig = new EnvironmentConfig();
     this.backendConfig = this.getBackendConfig();
-    this.sheetsService = new SheetsService();
     this.extensionUpdater = new ExtensionUpdater();
     this.init();
   }
@@ -36,12 +28,12 @@ class BetTrackerBackground {
   }
 
   getBackendConfig() {
-    // Use environment-based configuration
+    // Use Railway production URL
     return {
-      baseUrl: this.envConfig ? this.envConfig.apiUrl : 'https://bet-tracker-pro-api.vercel.app/api',
+      baseUrl: 'https://bet-tracker-pro-production.up.railway.app/api',
       timeout: 30000,
       retryAttempts: 3,
-      environment: this.envConfig ? this.envConfig.environmentName : 'production'
+      environment: 'production'
     };
   }
 
@@ -297,15 +289,90 @@ class BetTrackerBackground {
       
       await chrome.storage.local.set({ betHistory: history });
       
-      // Auto-sync to Google Sheets if authenticated
+      // Auto-sync to Google Sheets if authenticated and connected
       try {
-        const sheetsStatus = await this.sheetsService.getAuthStatus();
-        if (sheetsStatus.isAuthenticated) {
-          await this.sheetsService.syncBetData(betEntry);
-          console.log('✅ Auto-synced bet to Google Sheets');
+        if (this.userToken) {
+          console.log('🔍 Auto-sync: Checking sheets status...');
+          // Check if user has sheets connected
+          const sheetsStatus = await this.getSheetsStatusInternal();
+          console.log('🔍 Auto-sync: Sheets status:', sheetsStatus);
+          
+          if (sheetsStatus && sheetsStatus.isAuthenticated && sheetsStatus.hasSpreadsheet && sheetsStatus.isSetupComplete) {
+            console.log('🔍 Auto-sync: Preparing bet data for sheets...');
+            
+            // Format bet data properly for sheets
+            const formattedBetData = {
+              date: betEntry.date || new Date().toLocaleDateString(),
+              teams: betEntry.teams || betEntry.event || '',
+              sport: betEntry.sport || '',
+              league: betEntry.league || '',
+              bet_type: betEntry.bet_type || betEntry.betType || '',
+              selection: betEntry.selection || '',
+              odds: betEntry.odds || '',
+              stake: betEntry.stake || '',
+              potential_return: betEntry.potential_return || betEntry.potentialReturn || '',
+              bookmaker: betEntry.bookmaker || '',
+              status: betEntry.status || 'pending',
+              notes: betEntry.notes || '',
+              confidence: betEntry.confidence || '',
+              actual_return: betEntry.actual_return || '',
+              id: betEntry.id
+            };
+            
+            console.log('🔍 Auto-sync: Sending formatted bet data to backend...', formattedBetData);
+            
+            const syncResponse = await fetch(`${this.backendConfig.baseUrl}/sheets/sync-bet`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${this.userToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ betData: formattedBetData })
+            });
+            
+            console.log('🔍 Auto-sync: Response status:', syncResponse.status);
+            
+            if (syncResponse.ok) {
+              const syncData = await syncResponse.json();
+              console.log('🔍 Auto-sync: Response data:', syncData);
+              if (syncData.success) {
+                console.log('✅ Auto-synced bet to Google Sheets successfully');
+                // Notify popup of successful sync
+                this.notifyPopup('sheetsSync', { success: true, message: 'Bet synced to Google Sheets' });
+              } else {
+                console.error('⚠️ Google Sheets sync failed:', syncData.error);
+                console.log('🔍 Full sync error response:', syncData);
+                // Check if it's an auth issue
+                if (syncData.error && syncData.error.includes('authentication')) {
+                  console.log('🔄 Sheets authentication may have expired');
+                }
+              }
+            } else {
+              const errorText = await syncResponse.text();
+              console.error('⚠️ Google Sheets sync request failed:', syncResponse.status);
+              try {
+                const parsedError = JSON.parse(errorText);
+                console.error('🔍 Parsed error details:', parsedError);
+                if (parsedError.error && parsedError.error.includes('authentication')) {
+                  console.log('🔄 Google authentication expired - user needs to reconnect');
+                }
+              } catch (e) {
+                console.error('🔍 Raw error response:', errorText);
+              }
+            }
+          } else {
+            console.log('📝 Google Sheets not fully configured:', {
+              isAuthenticated: sheetsStatus?.isAuthenticated,
+              hasSpreadsheet: sheetsStatus?.hasSpreadsheet,
+              isSetupComplete: sheetsStatus?.isSetupComplete
+            });
+          }
+        } else {
+          console.log('🔍 Auto-sync: No user token available');
         }
       } catch (sheetsError) {
-        console.log('ℹ️ Google Sheets auto-sync failed:', sheetsError.message);
+        console.error('❌ Google Sheets auto-sync error:', sheetsError);
+        console.error('Stack trace:', sheetsError.stack);
         // Don't fail the main operation if sheets sync fails
       }
       
@@ -435,7 +502,9 @@ class BetTrackerBackground {
   // Google Sheets Integration Methods
   async authenticateSheets(sendResponse) {
     try {
-      const response = await fetch(`${this.backendConfig.baseUrl}/sheets/authenticate`, {
+      // Since user is already authenticated with Google OAuth,
+      // we just need to create the sheets template
+      const response = await fetch(`${this.backendConfig.baseUrl}/sheets/create-template`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.userToken}`,
@@ -444,7 +513,17 @@ class BetTrackerBackground {
       });
       
       const data = await response.json();
-      sendResponse(data);
+      
+      if (response.ok && data.success) {
+        sendResponse({
+          success: true,
+          message: 'Google Sheets template created successfully',
+          spreadsheetId: data.data.spreadsheetId,
+          spreadsheetUrl: data.data.spreadsheetUrl
+        });
+      } else {
+        sendResponse({ success: false, error: data.error || 'Failed to create sheets template' });
+      }
     } catch (error) {
       sendResponse({ success: false, error: error.message });
     }
@@ -461,7 +540,17 @@ class BetTrackerBackground {
       });
       
       const data = await response.json();
-      sendResponse(data);
+      
+      if (response.ok && data.success) {
+        sendResponse({
+          success: true,
+          message: 'Google Sheets template created successfully',
+          spreadsheetId: data.data.spreadsheetId,
+          spreadsheetUrl: data.data.spreadsheetUrl
+        });
+      } else {
+        sendResponse({ success: false, error: data.error || 'Failed to create sheets template' });
+      }
     } catch (error) {
       sendResponse({ success: false, error: error.message });
     }
@@ -476,9 +565,46 @@ class BetTrackerBackground {
       });
       
       const data = await response.json();
-      sendResponse(data);
+      
+      if (response.ok && data.success) {
+        // Flatten the response structure for the popup
+        sendResponse({
+          success: true,
+          isAuthenticated: data.data.isAuthenticated,
+          hasSpreadsheet: data.data.hasSpreadsheet,
+          isSetupComplete: data.data.isSetupComplete,
+          spreadsheetUrl: data.data.spreadsheetUrl
+        });
+      } else {
+        sendResponse({ success: false, error: data.error || 'Failed to get sheets status' });
+      }
     } catch (error) {
       sendResponse({ success: false, error: error.message });
+    }
+  }
+
+  async getSheetsStatusInternal() {
+    try {
+      const response = await fetch(`${this.backendConfig.baseUrl}/sheets/status`, {
+        headers: {
+          'Authorization': `Bearer ${this.userToken}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        return {
+          isAuthenticated: data.data.isAuthenticated,
+          hasSpreadsheet: data.data.hasSpreadsheet,
+          isSetupComplete: data.data.isSetupComplete,
+          spreadsheetUrl: data.data.spreadsheetUrl
+        };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      return null;
     }
   }
 
@@ -510,38 +636,75 @@ class BetTrackerBackground {
         return;
       }
       
+      console.log(`📊 Syncing ${history.length} bets to Google Sheets...`);
+      
       let successCount = 0;
       let failCount = 0;
+      const failedBets = [];
       
       for (const bet of history) {
         try {
+          // Format bet data properly before sending
+          const formattedBetData = {
+            date: bet.date || new Date(bet.created_at || Date.now()).toLocaleDateString(),
+            teams: bet.teams || bet.event || '',
+            sport: bet.sport || '',
+            league: bet.league || '',
+            bet_type: bet.bet_type || bet.betType || '',
+            selection: bet.selection || '',
+            odds: bet.odds || '',
+            stake: bet.stake || '',
+            potential_return: bet.potential_return || bet.potentialReturn || '',
+            bookmaker: bet.bookmaker || '',
+            status: bet.status || 'pending',
+            notes: bet.notes || '',
+            confidence: bet.confidence || '',
+            actual_return: bet.actual_return || '',
+            id: bet.id || Date.now().toString()
+          };
+          
+          console.log(`📊 Syncing bet ${bet.id}...`);
+          
           const response = await fetch(`${this.backendConfig.baseUrl}/sheets/sync-bet`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${this.userToken}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ betData: bet })
+            body: JSON.stringify({ betData: formattedBetData })
           });
           
           const data = await response.json();
-          if (data.success) {
+          if (response.ok && data.success) {
             successCount++;
+            console.log(`✅ Bet ${bet.id} synced successfully`);
           } else {
+            console.error(`❌ Sync failed for bet ${bet.id}:`, data.error || 'Unknown error');
             failCount++;
+            failedBets.push({ id: bet.id, error: data.error });
           }
         } catch (error) {
+          console.error(`❌ Sync error for bet ${bet.id}:`, error.message);
           failCount++;
+          failedBets.push({ id: bet.id, error: error.message });
         }
+      }
+      
+      console.log(`📊 Sync complete: ${successCount} succeeded, ${failCount} failed`);
+      
+      if (failedBets.length > 0) {
+        console.error('Failed bets:', failedBets);
       }
       
       sendResponse({
         success: true,
         message: `Synced ${successCount} bets successfully${failCount > 0 ? `, ${failCount} failed` : ''}`,
         synced: successCount,
-        failed: failCount
+        failed: failCount,
+        failedBets: failedBets
       });
     } catch (error) {
+      console.error('Error in syncAllToSheets:', error);
       sendResponse({ success: false, error: error.message });
     }
   }

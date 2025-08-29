@@ -55,15 +55,5 @@
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
-  },
-  "oauth2": {
-    "client_id": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/spreadsheets",
-      "https://www.googleapis.com/auth/drive.file",
-      "profile",
-      "email"
-    ]
-  },
-  "key": "REPLACE_WITH_YOUR_EXTENSION_KEY_FOR_CONSISTENT_ID"
+  }
 }

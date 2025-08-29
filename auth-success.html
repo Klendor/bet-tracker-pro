@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset=\"utf-8\">
+    <meta charset="utf-8">
     <title>Authentication Successful - Bet Tracker Pro</title>
     <style>
         body {
@@ -111,15 +111,15 @@
     </style>
 </head>
 <body>
-    <div class=\"container\">
-        <div class=\"success-icon\">✅</div>
+    <div class="container">
+        <div class="success-icon">✅</div>
         <h1>Authentication Successful!</h1>
         <p>Your Google account has been linked successfully. Completing setup...</p>
         
-        <div id=\"status\" class=\"status\" style=\"display: none;\"></div>
+        <div id="status" class="status" style="display: none;"></div>
         
-        <button id=\"closeBtn\" class=\"close-btn\" onclick=\"closeWindow()\">
-            <span class=\"loading\" id=\"loading\"></span>
+        <button id="closeBtn" class="close-btn" onclick="closeWindow()">
+            <span class="loading" id="loading"></span>
             Processing...
         </button>
     </div>
@@ -128,38 +128,25 @@
         // Extract token from URL
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
+        const user = urlParams.get('user');
         const statusEl = document.getElementById('status');
         const closeBtn = document.getElementById('closeBtn');
         const loading = document.getElementById('loading');
         
         if (token) {
-            // Store token and notify extension
-            chrome.storage.sync.set({ userToken: token }, () => {
-                // Notify background script
-                chrome.runtime.sendMessage({
-                    action: 'authComplete',
-                    token: token
-                }, (response) => {
-                    loading.style.display = 'none';
-                    
-                    if (response && response.success) {
-                        statusEl.textContent = '✅ Setup complete! You can now close this tab.';
-                        statusEl.className = 'status success';
-                        closeBtn.innerHTML = 'Close Tab';
-                    } else {
-                        statusEl.textContent = '⚠️ Setup completed with warnings. Please check extension.';
-                        statusEl.className = 'status error';
-                        closeBtn.innerHTML = 'Close Tab';
-                    }
-                    
-                    statusEl.style.display = 'block';
-                    
-                    // Auto-close after 3 seconds
-                    setTimeout(() => {
-                        window.close();
-                    }, 3000);
-                });
-            });
+            // Content script will handle the extension communication
+            // Just show a loading state initially
+            console.log('Auth token received:', token.substring(0, 20) + '...');
+            
+            // Show initial success message
+            setTimeout(() => {
+                loading.style.display = 'none';
+                statusEl.textContent = '✅ Authentication successful! Notifying extension...';
+                statusEl.className = 'status success';
+                statusEl.style.display = 'block';
+                closeBtn.innerHTML = 'Processing...';
+            }, 500);
+            
         } else {
             loading.style.display = 'none';
             statusEl.textContent = '❌ No authentication token received. Please try again.';
@@ -171,13 +158,6 @@
         function closeWindow() {
             window.close();
         }
-        
-        // Auto-close if parent window closes
-        window.addEventListener('beforeunload', () => {
-            if (token) {
-                chrome.runtime.sendMessage({ action: 'authComplete', token: token });
-            }
-        });
     </script>
 </body>
 </html>

@@ -74,12 +74,30 @@ class BetTrackerPopup {
 
   async loadUserData() {
     try {
-      // Get user data from backend
-      const response = await chrome.runtime.sendMessage({ action: 'getUserInfo' });
+      // Check if there's a stored token from recent auth
+      const storage = await chrome.storage.sync.get(['userToken', 'user']);
       
-      if (response.success) {
-        this.currentUser = response.user;
+      if (storage.userToken) {
+        // We have a token - get fresh user info
+        const response = await chrome.runtime.sendMessage({ 
+          action: 'getUserInfo',
+          token: storage.userToken 
+        });
+        
+        if (response.success) {
+          this.currentUser = response.user;
+          
+          // Check if this is a new authentication (no previous user data)
+          if (!storage.user || storage.user.id !== response.user.id) {
+            this.showStatus('✅ Successfully signed in!', 'success');
+          }
+        } else {
+          // Token might be invalid, clear it
+          await chrome.storage.sync.remove(['userToken', 'user']);
+          this.currentUser = null;
+        }
       } else {
+        // No token - user not authenticated
         this.currentUser = null;
       }
       
@@ -180,7 +198,7 @@ class BetTrackerPopup {
     }
     
     // Check if Google Sheets is set up (mandatory requirement)
-    if (!this.currentUser.hasGoogleSheets) {
+    if (!this.currentUser.sheets_connected) {
       captureBtn.disabled = true;
       captureBtn.textContent = '📋 Complete Google Sheets Setup';
       captureBtn.addEventListener('click', () => {
@@ -281,51 +299,9 @@ class BetTrackerPopup {
       
       chrome.tabs.create({ url: authUrl }, (tab) => {
         this.hideLoading();
+        this.showStatus('Complete authentication in the new tab. Extension will automatically detect completion.', 'info');
         
-        // Listen for auth completion
-        const authCompleteListener = (message, sender, sendResponse) => {
-          if (message.action === 'authComplete' && message.token) {
-            // Store token and get user info
-            chrome.storage.sync.set({ userToken: message.token }, async () => {
-              try {
-                const userResponse = await chrome.runtime.sendMessage({ 
-                  action: 'getUserInfo',
-                  token: message.token 
-                });
-                
-                if (userResponse && userResponse.success) {
-                  this.currentUser = userResponse.user;
-                  
-                  // Check if Google Sheets setup is needed
-                  const sheetsStatus = await chrome.runtime.sendMessage({ action: 'getSheetsStatus' });
-                  
-                  if (!sheetsStatus.isSetupComplete) {
-                    this.showMandatorySheetsOnboarding();
-                  } else {
-                    this.updateUI();
-                    this.showStatus('✅ Welcome back! All systems ready.', 'success');
-                  }
-                } else {
-                  throw new Error('Failed to get user information');
-                }
-                
-                sendResponse({ success: true });
-              } catch (error) {
-                console.error('Auth completion error:', error);
-                this.showStatus('❌ Authentication completed but setup failed', 'error');
-                sendResponse({ success: false, error: error.message });
-              }
-            });
-            
-            // Remove listener
-            chrome.runtime.onMessage.removeListener(authCompleteListener);
-          }
-        };
-        
-        chrome.runtime.onMessage.addListener(authCompleteListener);
-        
-        // Close this popup
-        window.close();
+        // Don't close popup - let user complete auth and it will auto-detect
       });
       
     } catch (error) {
@@ -922,12 +898,15 @@ class BetTrackerPopup {
         return;
       }
       
-      if (response.isAuthenticated) {
-        // User is already connected, show management options
+      if (response.isAuthenticated && response.hasSpreadsheet) {
+        // User is already connected and has a spreadsheet, show management options
         this.showSheetsManagement(response);
-      } else {
-        // User needs to authenticate
+      } else if (response.isAuthenticated && !response.hasSpreadsheet) {
+        // User is authenticated but needs to create spreadsheet
         this.showSheetsAuthentication();
+      } else {
+        // User needs to authenticate with Google first
+        this.showStatus('Please complete Google authentication first', 'error');
       }
       
     } catch (error) {
@@ -996,9 +975,11 @@ class BetTrackerPopup {
         </div>
         
         <div class="sheets-actions">
-          ${sheetsStatus.spreadsheetUrl ? `
+          ${(sheetsStatus.hasSpreadsheet && sheetsStatus.spreadsheetUrl) ? `
             <button id="openSpreadsheetBtn" class="result-btn primary">📋 Open Spreadsheet</button>
-          ` : ''}
+          ` : `
+            <button id="createTemplateBtn" class="result-btn primary">📋 Create Spreadsheet</button>
+          `}
           <button id="syncAllBtn" class="result-btn secondary">🔄 Sync All History</button>
           <button id="disconnectSheetsBtn" class="result-btn danger">🔒 Disconnect</button>
           <button id="closeSheetsBtn" class="result-btn secondary">Close</button>
@@ -1017,6 +998,10 @@ class BetTrackerPopup {
       if (sheetsStatus.spreadsheetUrl) {
         chrome.tabs.create({ url: sheetsStatus.spreadsheetUrl });
       }
+    });
+    
+    document.getElementById('createTemplateBtn')?.addEventListener('click', async () => {
+      await this.createSheetsTemplate();
     });
     
     document.getElementById('syncAllBtn')?.addEventListener('click', async () => {
@@ -1043,6 +1028,10 @@ class BetTrackerPopup {
         this.showStatus('✅ Successfully connected to Google Sheets!', 'success');
         document.getElementById('resultModal').style.display = 'none';
         
+        // Refresh user data to get updated sheets_connected status
+        await this.loadUserData();
+        this.updateUI();
+        
         // Show management interface
         setTimeout(() => {
           this.handleSheetsIntegration();
@@ -1055,6 +1044,36 @@ class BetTrackerPopup {
       this.hideLoading();
       console.error('Error authenticating with Google Sheets:', error);
       this.showStatus('Error connecting to Google Sheets', 'error');
+    }
+  }
+
+  async createSheetsTemplate() {
+    try {
+      this.showLoading('Creating Google Sheets template...');
+      
+      const response = await chrome.runtime.sendMessage({ action: 'createSheetsTemplate' });
+      this.hideLoading();
+      
+      if (response.success) {
+        this.showStatus('✅ Google Sheets template created successfully!', 'success');
+        document.getElementById('resultModal').style.display = 'none';
+        
+        // Refresh user data to get updated sheets_connected status
+        await this.loadUserData();
+        this.updateUI();
+        
+        // Refresh the sheets status
+        setTimeout(() => {
+          this.handleSheetsIntegration();
+        }, 1000);
+      } else {
+        this.showStatus('❌ Failed to create template: ' + response.error, 'error');
+      }
+      
+    } catch (error) {
+      this.hideLoading();
+      console.error('Error creating Google Sheets template:', error);
+      this.showStatus('Error creating Google Sheets template', 'error');
     }
   }
 
@@ -1083,20 +1102,35 @@ class BetTrackerPopup {
       try {
         this.showLoading('Disconnecting from Google Sheets...');
         
+        console.log('🔌 Disconnecting from Google Sheets...');
         const response = await chrome.runtime.sendMessage({ action: 'disconnectSheets' });
+        console.log('🔌 Disconnect response:', response);
+        
         this.hideLoading();
         
-        if (response.success) {
+        if (response && response.success) {
           this.showStatus('✅ Disconnected from Google Sheets', 'success');
           document.getElementById('resultModal').style.display = 'none';
+          
+          // Clear any cached sheets data
+          await chrome.storage.local.remove(['sheetsAuthenticated', 'betTrackingSpreadsheetId']);
+          
+          // Refresh user data to get updated sheets_connected status
+          await this.loadUserData();
+          this.updateUI();
+          
+          // Update the capture button state
+          this.updateCaptureButton();
         } else {
-          this.showStatus('❌ Failed to disconnect: ' + response.error, 'error');
+          const errorMsg = response?.error || 'Unknown error occurred';
+          console.error('🔌 Disconnect failed:', errorMsg);
+          this.showStatus('❌ Failed to disconnect: ' + errorMsg, 'error');
         }
         
       } catch (error) {
         this.hideLoading();
-        console.error('Error disconnecting from Google Sheets:', error);
-        this.showStatus('Error disconnecting from Google Sheets', 'error');
+        console.error('🔌 Error disconnecting from Google Sheets:', error);
+        this.showStatus('Error disconnecting from Google Sheets: ' + error.message, 'error');
       }
     }
   }
@@ -1385,10 +1419,8 @@ class BetTrackerPopup {
       
       this.hideLoading();
       
-      // Step 3: Update user data to mark sheets as set up
-      this.currentUser.hasGoogleSheets = true;
-      this.currentUser.spreadsheetId = templateResponse.spreadsheetId;
-      this.currentUser.spreadsheetUrl = templateResponse.spreadsheetUrl;
+      // Step 3: Refresh user data to get updated sheets_connected status
+      await this.loadUserData();
       
       // Step 4: Update UI to reflect completed setup
       this.updateUI();
