@@ -21,7 +21,7 @@
     "https://api.github.com/*"
   ],
   "action": {
-    "default_popup": "popup/popup.html",
+    "default_popup": "popup/popup-new.html",
     "default_title": "Bet Tracker Pro",
     "default_icon": {
       "16": "icons/icon-16.png",

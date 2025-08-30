@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Sheets Connection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1b21;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            background: #00d4ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #00a0cc;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Reset Google Sheets Connection</h1>
+    <p>Use this page to reset your Google Sheets connection and test with the new template.</p>
+    
+    <button id="clearBtn">Clear Old Spreadsheet ID</button>
+    <button id="checkBtn">Check Current Status</button>
+    
+    <div id="status"></div>
+    
+    <script src="reset-sheets.js"></script>
+</body>
+</html>

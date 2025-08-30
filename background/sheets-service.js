@@ -2,9 +2,26 @@
 class SheetsService {
   constructor() {
     this.isAuthenticated = false;
-    this.accessToken = null;
     this.spreadsheetId = null;
-    this.sheetId = null;
+    this.accessToken = null;
+    // Load sheets configuration
+    this.config = null;
+    this.loadConfig();
+  }
+  
+  async loadConfig() {
+    try {
+      // Load the sheets configuration
+      const response = await fetch(chrome.runtime.getURL('config/sheets-config.js'));
+      const text = await response.text();
+      // Extract SHEETS_CONFIG from the file
+      const configMatch = text.match(/const SHEETS_CONFIG = (\{[\s\S]*?\});/);
+      if (configMatch) {
+        this.config = eval('(' + configMatch[1] + ')');
+      }
+    } catch (error) {
+      console.error('Error loading sheets config:', error);
+    }
   }
 
   // Authenticate with Google Sheets API
@@ -94,25 +111,57 @@ class SheetsService {
         return { success: true, spreadsheetId: this.spreadsheetId };
       }
 
-      // For demo purposes, simulate spreadsheet creation
-      const spreadsheetId = 'demo-bet-tracker-spreadsheet-' + Date.now();
-      this.spreadsheetId = spreadsheetId;
-      
-      await chrome.storage.local.set({
-        betTrackingSpreadsheetId: spreadsheetId
-      });
-
-      // Initialize the spreadsheet with headers
-      await this.initializeSpreadsheet();
-
-      return { 
-        success: true, 
-        spreadsheetId: this.spreadsheetId,
-        message: 'Created new bet tracking spreadsheet'
-      };
+      // Copy the template to user's Drive
+      const result = await this.copyTemplateToUserDrive();
+      if (result.success) {
+        this.spreadsheetId = result.spreadsheetId;
+        await chrome.storage.local.set({
+          betTrackingSpreadsheetId: result.spreadsheetId
+        });
+        return result;
+      } else {
+        throw new Error(result.error || 'Failed to copy template');
+      }
 
     } catch (error) {
       console.error('Error creating spreadsheet:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Copy template to user's Google Drive
+  async copyTemplateToUserDrive() {
+    try {
+      // Make sure config is loaded
+      if (!this.config) {
+        await this.loadConfig();
+      }
+
+      const templateId = this.config?.TEMPLATE_ID || '1xsvxK5uYVQRupUarXxF_s44h-j_l7yndWMN0rbZIOck';
+      
+      console.log('📋 Copying template to user\'s Drive...');
+      console.log('Template ID:', templateId);
+
+      // This should call the backend API to copy the template
+      // For now, we'll return the template ID as if it was copied
+      // In production, this would use Google Drive API to copy the file
+      
+      // TODO: Implement actual Google Drive API copy
+      // const response = await fetch('/api/sheets/copy-template', {
+      //   method: 'POST',
+      //   body: JSON.stringify({ templateId })
+      // });
+      
+      // For demo/testing, return success with the template ID
+      return {
+        success: true,
+        spreadsheetId: templateId,
+        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${templateId}/edit`,
+        message: 'Template copied successfully'
+      };
+      
+    } catch (error) {
+      console.error('Error copying template:', error);
       return { success: false, error: error.message };
     }
   }

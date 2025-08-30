@@ -1,0 +1,235 @@
+// Google Sheets Template Configuration
+const SHEETS_CONFIG = {
+  // Google Sheets Template ID
+  TEMPLATE_ID: '1xsvxK5uYVQRupUarXxF_s44h-j_l7yndWMN0rbZIOck',
+  
+  // Sheet names in the template
+  SHEETS: {
+    BET_TRACKER: 'Bet Tracker',
+    DASHBOARD: 'Dashboard',
+    BANKROLL: 'Bankroll',
+    SETTINGS: 'Settings',
+    MOBILE: 'Mobile View'
+  },
+  
+  // Column mappings for Bet Tracker sheet (0-indexed)
+  COLUMNS: {
+    ID: 0,              // A
+    STATUS: 1,          // B
+    MATCH_DATETIME: 2,  // C
+    SPORT: 3,           // D
+    TEAMS_EVENT: 4,     // E
+    MARKET: 5,          // F
+    SELECTION: 6,       // G
+    ODDS: 7,            // H
+    STAKE: 8,           // I
+    POTENTIAL_RETURN: 9, // J
+    ACTUAL_RETURN: 10,  // K
+    PL: 11,             // L
+    BOOKMAKER: 12,      // M
+    TYPE: 13,           // N
+    ADDED: 14,          // O
+    DAYS_PENDING: 15,   // P
+    DELETE: 16,         // Q
+    BET_URL: 17,        // R (hidden)
+    ORIGINAL_DATA: 18,  // S (hidden)
+    LAST_MODIFIED: 19,  // T (hidden)
+    DUPLICATE_CHECK: 20 // U (hidden)
+  },
+  
+  // Status values
+  STATUS_VALUES: {
+    PENDING: 'PENDING',
+    WON: 'WON',
+    LOST: 'LOST',
+    VOID: 'VOID',
+    PUSH: 'PUSH',
+    CASHED_OUT: 'CASHED OUT'
+  },
+  
+  // Bet type values
+  BET_TYPES: {
+    PRE_MATCH: 'PRE-MATCH',
+    LIVE: 'LIVE'
+  },
+  
+  // Known bookmaker mappings
+  BOOKMAKER_MAPPINGS: {
+    'draftkings': 'DraftKings',
+    'fanduel': 'FanDuel',
+    'betmgm': 'BetMGM',
+    'caesars': 'Caesars',
+    'caesarssportsbook': 'Caesars',
+    'pointsbet': 'PointsBet',
+    'bet365': 'Bet365',
+    'williamhill': 'William Hill',
+    'barstool': 'Barstool',
+    'wynnbet': 'WynnBET',
+    'betrivers': 'BetRivers',
+    'unibet': 'Unibet',
+    'betway': 'Betway',
+    'bovada': 'Bovada',
+    'mybookie': 'MyBookie',
+    '888sport': '888Sport',
+    'foxbet': 'Fox Bet',
+    'sugarhouse': 'SugarHouse',
+    'betamerica': 'BetAmerica',
+    'betfred': 'Betfred',
+    'coral': 'Coral',
+    'ladbrokes': 'Ladbrokes',
+    'paddypower': 'Paddy Power',
+    'skybet': 'Sky Bet',
+    'betfair': 'Betfair',
+    'sportingbet': 'Sportingbet',
+    'bwin': 'Bwin',
+    'pinnacle': 'Pinnacle',
+    'nitrogen': 'Nitrogen Sports',
+    'cloudbet': 'Cloudbet',
+    'stake': 'Stake'
+  },
+  
+  // Status detection keywords
+  STATUS_KEYWORDS: {
+    PENDING: ['pending', 'unsettled', 'active', 'open', 'live', 'in-play', 'in play'],
+    WON: ['won', 'winner', 'winning', 'win', '✓', '✔', 'successful', 'cashed'],
+    LOST: ['lost', 'loser', 'losing', 'loss', '✗', '✘', 'unsuccessful', 'failed'],
+    VOID: ['void', 'voided', 'cancelled', 'canceled', 'refunded', 'refund'],
+    PUSH: ['push', 'pushed', 'tie', 'draw', 'no action'],
+    CASHED_OUT: ['cashed out', 'cash out', 'cashout', 'early payout', 'early settlement']
+  }
+};
+
+// Helper functions for sheets operations
+const SheetsHelper = {
+  /**
+   * Detect bookmaker from URL
+   */
+  detectBookmaker(url) {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+      
+      // Remove common prefixes
+      const cleanDomain = hostname
+        .replace(/^(www\.|mobile\.|m\.|app\.|sportsbook\.)/, '')
+        .split('.')[0];
+      
+      // Check if we have a known mapping
+      if (SHEETS_CONFIG.BOOKMAKER_MAPPINGS[cleanDomain]) {
+        return SHEETS_CONFIG.BOOKMAKER_MAPPINGS[cleanDomain];
+      }
+      
+      // Otherwise, capitalize first letter
+      return cleanDomain.charAt(0).toUpperCase() + cleanDomain.slice(1);
+    } catch (error) {
+      console.error('Error detecting bookmaker:', error);
+      return 'Unknown';
+    }
+  },
+  
+  /**
+   * Detect bet status from text
+   */
+  detectStatus(text) {
+    const lowerText = text.toLowerCase();
+    
+    // Check each status type
+    for (const [status, keywords] of Object.entries(SHEETS_CONFIG.STATUS_KEYWORDS)) {
+      if (keywords.some(keyword => lowerText.includes(keyword))) {
+        return SHEETS_CONFIG.STATUS_VALUES[status];
+      }
+    }
+    
+    // Default to pending if no match
+    return SHEETS_CONFIG.STATUS_VALUES.PENDING;
+  },
+  
+  /**
+   * Format date for sheets
+   */
+  formatDateTime(date) {
+    const d = new Date(date);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const month = months[d.getMonth()];
+    const day = d.getDate();
+    const hour = d.getHours();
+    const minute = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    
+    return `${month} ${day}, ${hour12}:${minute} ${ampm}`;
+  },
+  
+  /**
+   * Prepare bet data for sheets insertion
+   */
+  prepareBetData(betData, url) {
+    const now = new Date();
+    const bookmaker = this.detectBookmaker(url);
+    const status = this.detectStatus(betData.status || '');
+    
+    // Create row data array matching column order
+    const rowData = new Array(21).fill(''); // 21 columns total
+    
+    // ID will be auto-generated by formula
+    rowData[SHEETS_CONFIG.COLUMNS.STATUS] = status;
+    rowData[SHEETS_CONFIG.COLUMNS.MATCH_DATETIME] = betData.match_datetime || this.formatDateTime(now);
+    rowData[SHEETS_CONFIG.COLUMNS.SPORT] = betData.sport || '';
+    rowData[SHEETS_CONFIG.COLUMNS.TEAMS_EVENT] = betData.teams || '';
+    rowData[SHEETS_CONFIG.COLUMNS.MARKET] = betData.market || 'Other';
+    rowData[SHEETS_CONFIG.COLUMNS.SELECTION] = betData.selection || '';
+    rowData[SHEETS_CONFIG.COLUMNS.ODDS] = betData.odds || '';
+    rowData[SHEETS_CONFIG.COLUMNS.STAKE] = this.parseAmount(betData.stake);
+    // POTENTIAL_RETURN will be calculated by formula
+    rowData[SHEETS_CONFIG.COLUMNS.ACTUAL_RETURN] = betData.actual_return || '';
+    // PL will be calculated by formula
+    rowData[SHEETS_CONFIG.COLUMNS.BOOKMAKER] = bookmaker;
+    rowData[SHEETS_CONFIG.COLUMNS.TYPE] = betData.is_live ? 'LIVE' : 'PRE-MATCH';
+    rowData[SHEETS_CONFIG.COLUMNS.ADDED] = this.formatDateTime(now);
+    // DAYS_PENDING will be calculated by formula
+    rowData[SHEETS_CONFIG.COLUMNS.DELETE] = false;
+    rowData[SHEETS_CONFIG.COLUMNS.BET_URL] = url;
+    rowData[SHEETS_CONFIG.COLUMNS.ORIGINAL_DATA] = JSON.stringify(betData);
+    rowData[SHEETS_CONFIG.COLUMNS.LAST_MODIFIED] = this.formatDateTime(now);
+    // DUPLICATE_CHECK will be calculated by formula
+    
+    return rowData;
+  },
+  
+  /**
+   * Parse amount from string
+   */
+  parseAmount(amountStr) {
+    if (!amountStr) return 0;
+    
+    // Remove currency symbols and convert to number
+    const cleaned = amountStr.toString().replace(/[^0-9.-]/g, '');
+    return parseFloat(cleaned) || 0;
+  },
+  
+  /**
+   * Check for duplicate bets
+   */
+  isDuplicate(existingBets, newBet) {
+    const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const newBetTime = new Date(newBet[SHEETS_CONFIG.COLUMNS.ADDED]).getTime();
+    
+    return existingBets.some(bet => {
+      const existingTime = new Date(bet[SHEETS_CONFIG.COLUMNS.ADDED]).getTime();
+      const timeDiff = Math.abs(newBetTime - existingTime);
+      
+      return (
+        bet[SHEETS_CONFIG.COLUMNS.TEAMS_EVENT] === newBet[SHEETS_CONFIG.COLUMNS.TEAMS_EVENT] &&
+        bet[SHEETS_CONFIG.COLUMNS.ODDS] === newBet[SHEETS_CONFIG.COLUMNS.ODDS] &&
+        bet[SHEETS_CONFIG.COLUMNS.STAKE] === newBet[SHEETS_CONFIG.COLUMNS.STAKE] &&
+        timeDiff <= fiveMinutes
+      );
+    });
+  }
+};
+
+// Export for use in other files
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { SHEETS_CONFIG, SheetsHelper };
+}
