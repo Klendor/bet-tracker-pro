@@ -516,12 +516,29 @@ class BetTrackerPopup {
       this.hideLoading();
       
       if (response?.success) {
+        // Save spreadsheet ID if provided
+        if (response.spreadsheetId) {
+          await chrome.storage.local.set({
+            betTrackingSpreadsheetId: response.spreadsheetId,
+            sheetsAuthenticated: true
+          });
+          console.log('Saved spreadsheet ID:', response.spreadsheetId);
+        }
+        
         this.sheetsConnected = true;
         this.updateUI();
         this.showToast('Successfully connected to Google Sheets!', 'success');
         
-        // Create template if needed
-        setTimeout(() => this.createSheetsTemplate(), 500);
+        // Open spreadsheet if URL provided
+        if (response.spreadsheetUrl) {
+          const open = confirm('Spreadsheet created! Would you like to open it now?');
+          if (open) {
+            chrome.tabs.create({ url: response.spreadsheetUrl });
+          }
+        }
+        
+        // Don't create template again - authenticateSheets already does this
+        // setTimeout(() => this.createSheetsTemplate(), 500);
       } else {
         throw new Error(response?.error || 'Connection failed');
       }
@@ -541,6 +558,15 @@ class BetTrackerPopup {
       this.hideLoading();
       
       if (response?.success) {
+        // Save spreadsheet ID to local storage
+        if (response.spreadsheetId) {
+          await chrome.storage.local.set({
+            betTrackingSpreadsheetId: response.spreadsheetId,
+            sheetsAuthenticated: true
+          });
+          console.log('Saved spreadsheet ID:', response.spreadsheetId);
+        }
+        
         this.sheetsConnected = true;
         this.updateUI();
         this.showToast('Spreadsheet created successfully!', 'success');
