@@ -30,7 +30,8 @@ router.get('/google', async (req, res) => {
         'profile',
         'email',
         'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive.file'
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/drive.readonly' // Added for template access
       ],
       state: 'bet-tracker-pro'
     });
